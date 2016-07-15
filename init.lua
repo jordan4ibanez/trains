@@ -7,7 +7,7 @@
 --eventually make it so you can connect them
 --make this mod totally physical, no clicking to move, etc, push it, or use control panel
 --then do furnace carts to push as a starter, try to make this super in depth, 
-
+--rewrite this to use voxel manip, and open up a 3x3 box to do logic
 
 --let's start off
 --[[
@@ -30,13 +30,17 @@ local minecart   = {
 	direction    = {x=0,y=0,z=0},
 	speed        = 0, --dpt (distance per tick, speed measurement)
 }
+--punch function
+function minecart.on_punch(self)
+	self.object:remove()
+end
 
 --right click function
 function minecart.on_rightclick(self, clicker)
 	local pos = self.object:getpos()
 	--if self.direction.x == 0 and self.direction.z == 0 then
 		self.direction = set_direction(clicker:getpos(), pos)
-		self.speed     = 0.1
+		self.speed     = 0.01
 	--end
 end
 
@@ -61,29 +65,83 @@ function roll(self)
 	local direction = self.object:get_luaentity().direction
 	local speed     = self.object:get_luaentity().speed
 
-	local x = math.floor((pos.x + direction.x) + 0.5)
-	local y = math.floor((pos.y + direction.y) + 0.5) --the center of the node
-	local z = math.floor((pos.z + direction.z) + 0.5)
+	local x = math.floor(pos.x + direction.x)
+	local y = math.floor(pos.y + direction.y) --the center of the node
+	local z = math.floor(pos.z + direction.z)
 	-----
 	local speedx = pos.x + (direction.x * speed)
 	local speedy = pos.y + (direction.y * speed) --the speed moveto uses to move the minecart
 	local speedz = pos.z + (direction.z * speed)
 	-----
-	local forwardnode = minetest.get_node({x=x,y=y,z=z}).name --the node 1 space in front of it
+	--local currentnode = minetest.get_node({x=x,y=y,z=z}).name
+	local forwardnode = minetest.get_node({x=speedx,y=y,z=speedz}).name --the node 1 space in front of it
+	local upnode      = minetest.get_node({x=speedx+(direction.x),y=speedy+1,z=speedz+(direction.z)}).name    --the node 1 space up + 1 space forwards
+	local downnode    = minetest.get_node({x=speedx,y=speedy-1,z=speedz}).name    --the node 1 space down + 1 space forwards
 	----
 	local movement  = {x=speedx,y=speedy,z=speedz}
 	
-	if forwardnode == "default:rail" then
+	--print(forwardnode,downnode)
+	if forwardnode == "default:rail" and upnode ~= "default:rail" and direction.y == 0 then --and upnode ~= "default:rail" and downnode ~= "default:rail" and direction.y == 0 then
+		print("forwrad")
 		--move the cart forwards
-		movement = {x=speedx,y=speedy,z=speedz}
-	else--if nothing in front of it and it's past the center of the node, try to turn 
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=y,z=z}
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=x,y=y,z=speedz}
+		end
+	--move minecart up
+	elseif forwardnode == "default:rail" and upnode == "default:rail" and direction.y == 0 then
+		print("up")
+		direction.y = 1
+	elseif direction.y == 1 then
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=speedy,z=z}
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=x,y=speedy,z=speedz}
+		end
+		--when it gets to the top of the rail, stop moving up
+		if minetest.get_node({x=speedx+(direction.x),y=speedy+0.5,z=speedz+(direction.z)}).name ~= "default:rail" then
+			direction.y = 0
+		end
+	--move minecart down
+	elseif forwardnode ~= "default:rail" and downnode == "default:rail" and direction.y == 0 then
+		print("down")
+		direction.y = -1
+	elseif direction.y == -1 then
+		local negy = pos.y - speed
+		
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=negy,z=z}
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=x,y=negy,z=speedz}
+		end
+		--when it gets to the bottom of the rail, stop moving down
+		local noder = minetest.get_node({x=speedx,y=pos.y-0.5-(speed*2),z=speedz}).name
+		if noder  ~= "default:rail" then
+			print(dump(noder))
+			direction.y = 0
+		end
+	--[[
+	else--if nothing in front of it and it's past the center of the node ande no node above + 1 (x or z), try to turn 
 		
 		if math.abs(direction.x) > 0 then
+			-- I am rounding to 0.0 instead of 0.5
+			if upnode == "default:rail"  then--and base ~= "default:rail" then
+				--lets move the cart upwards
+				
+				movement  = {x=math.floor(pos.x + 0.5),y=speedy,z=pos.z}
+				direction = {x=direction.x,y=1,z=direction.z}
+			elseif upnode ~= "default:rail" and direction.y == 1 then
+			
+				print("continue upward")
+					
 			if ((direction.x > 0) and (pos.x > math.floor(pos.x + 0.5))) or ((direction.x < 0) and (pos.x < math.floor(pos.x + 0.5))) then
 				local overhang = pos.x - math.floor(pos.x + 0.5) -- how much past the center the cart is, (add to next dir
 				
 				local left  = minetest.get_node({x=pos.x,y=pos.y,z=pos.z + 1}).name
 				local right = minetest.get_node({x=pos.x,y=pos.y,z=pos.z - 1}).name
+				--local base  = minetest.get_node({x=pos.x+direction.x,y=pos.y-1,z=pos.z+direction.z}).name -- the bottom of the minecart
+				
 				
 				if left == "default:rail" then
 					direction.x = 0
@@ -95,9 +153,15 @@ function roll(self)
 					direction.x = 0
 					direction.z = -1
 					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed - overhang} 
+				
+				else
+					--stop
+					print("stop")
+					movement  = {x=pos.x,y=pos.y,z=pos.z}
+					direction = {x=0,y=0,z=0}
 				end
+			
 			end
-		
 		elseif math.abs(direction.z) > 0 then
 			if ((direction.z > 0) and (pos.z > math.floor(pos.z + 0.5))) or ((direction.z < 0) and (pos.z < math.floor(pos.z + 0.5))) then
 				local overhang = pos.z - math.floor(pos.z + 0.5) -- how much past the center the cart is, (add to next dir
@@ -115,8 +179,17 @@ function roll(self)
 					movement = {x=pos.x - speed - overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
 				end
 			end
-			
+		
+		else
+			print("stop")
+			movement  = {x=pos.x,y=pos.y,z=pos.z}
+			direction = {x=0,y=0,z=0}
 		end
+	]]--
+	else--if all else fails, stop
+		print("stop")
+		movement  = pos
+		direction = {x=0,y=0,z=0}
 	end
 	
 	self.object:moveto(movement)
