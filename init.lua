@@ -40,7 +40,7 @@ function minecart.on_rightclick(self, clicker)
 	local pos = self.object:getpos()
 	--if self.direction.x == 0 and self.direction.z == 0 then
 		self.direction = set_direction(clicker:getpos(), pos)
-		self.speed     = 0.01
+		self.speed     = 0.05
 	--end
 end
 
@@ -65,9 +65,9 @@ function roll(self)
 	local direction = self.object:get_luaentity().direction
 	local speed     = self.object:get_luaentity().speed
 
-	local x = math.floor(pos.x + direction.x)
-	local y = math.floor(pos.y + direction.y) --the center of the node
-	local z = math.floor(pos.z + direction.z)
+	local x = math.floor(pos.x + 0.5)
+	local y = math.floor(pos.y + 0.5) --the center of the node
+	local z = math.floor(pos.z + 0.5)
 	-----
 	local speedx = pos.x + (direction.x * speed)
 	local speedy = pos.y + (direction.y * speed) --the speed moveto uses to move the minecart
@@ -76,44 +76,21 @@ function roll(self)
 	--local currentnode = minetest.get_node({x=x,y=y,z=z}).name
 	local forwardnode = minetest.get_node({x=speedx,y=y,z=speedz}).name --the node 1 space in front of it
 	local upnode      = minetest.get_node({x=speedx+(direction.x),y=speedy+1,z=speedz+(direction.z)}).name    --the node 1 space up + 1 space forwards
-	local downnode    = minetest.get_node({x=speedx,y=speedy-1,z=speedz}).name    --the node 1 space down + 1 space forwards
+	local downnode    = minetest.get_node({x=pos.x+(direction.x/2),y=speedy-1,z=pos.z+(direction.z/2)}).name    --the node 1 space down + 1 space forwards
+	local nodeahead   = minetest.get_node({x=pos.x+(direction.x/2),y=pos.y+(direction.y/2),z=pos.z+(direction.z/2)}).name --1 rounded node ahead
 	----
-	local movement  = {x=speedx,y=speedy,z=speedz}
+	local movement  = {x=pos.x,y=pos.y,z=pos.z}
 	
 	--print(forwardnode,downnode)
-	if forwardnode == "default:rail" and upnode ~= "default:rail" and direction.y == 0 then --and upnode ~= "default:rail" and downnode ~= "default:rail" and direction.y == 0 then
-		print("forwrad")
-		--move the cart forwards
-		if math.abs(speedx) ~= 0 then
-			movement = {x=speedx,y=y,z=z}
-		elseif math.abs(speedz) ~= 0 then
-			movement = {x=x,y=y,z=speedz}
-		end
-	--move minecart up
-	elseif forwardnode == "default:rail" and upnode == "default:rail" and direction.y == 0 then
-		print("up")
-		direction.y = 1
-	elseif direction.y == 1 then
-		if math.abs(speedx) ~= 0 then
-			movement = {x=speedx,y=speedy,z=z}
-		elseif math.abs(speedz) ~= 0 then
-			movement = {x=x,y=speedy,z=speedz}
-		end
-		--when it gets to the top of the rail, stop moving up
-		if minetest.get_node({x=speedx+(direction.x),y=speedy+0.5,z=speedz+(direction.z)}).name ~= "default:rail" then
-			direction.y = 0
-		end
 	--move minecart down
-	elseif forwardnode ~= "default:rail" and downnode == "default:rail" and direction.y == 0 then
+	if forwardnode ~= "default:rail" and downnode == "default:rail" and direction.y == 0 then
 		print("down")
 		direction.y = -1
 	elseif direction.y == -1 then
-		local negy = pos.y - speed
-		
 		if math.abs(speedx) ~= 0 then
-			movement = {x=speedx,y=negy,z=z}
+			movement = {x=speedx,y=speedy,z=speedz}
 		elseif math.abs(speedz) ~= 0 then
-			movement = {x=x,y=negy,z=speedz}
+			movement = {x=speedx,y=speedy,z=speedz}
 		end
 		--when it gets to the bottom of the rail, stop moving down
 		local noder = minetest.get_node({x=speedx,y=pos.y-0.5-(speed*2),z=speedz}).name
@@ -121,75 +98,63 @@ function roll(self)
 			print(dump(noder))
 			direction.y = 0
 		end
-	--[[
-	else--if nothing in front of it and it's past the center of the node ande no node above + 1 (x or z), try to turn 
+	--move the cart forwards
+	elseif nodeahead == "default:rail" and upnode ~= "default:rail" and direction.y == 0 or (nodeahead ~= "default:rail" and downnode == "default:rail") then --and upnode ~= "default:rail" and downnode ~= "default:rail" and direction.y == 0 then
 		
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+			
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+			
+		end
+	--move minecart up
+	elseif nodeahead == "default:rail" and upnode == "default:rail" and direction.y == 0 then
+		print("up")
+		direction.y = 1
+	elseif direction.y == 1 then
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+		end
+		--when it gets to the top of the rail, stop moving up
+		if minetest.get_node({x=speedx+(direction.x),y=speedy+0.5,z=speedz+(direction.z)}).name ~= "default:rail" then
+			direction.y = 0
+		end
+	elseif nodeahead ~= "default:rail" and upnode ~= "default:rail" and downnode ~= "default:rail" then
 		if math.abs(direction.x) > 0 then
-			-- I am rounding to 0.0 instead of 0.5
-			if upnode == "default:rail"  then--and base ~= "default:rail" then
-				--lets move the cart upwards
-				
-				movement  = {x=math.floor(pos.x + 0.5),y=speedy,z=pos.z}
-				direction = {x=direction.x,y=1,z=direction.z}
-			elseif upnode ~= "default:rail" and direction.y == 1 then
 			
-				print("continue upward")
-					
-			if ((direction.x > 0) and (pos.x > math.floor(pos.x + 0.5))) or ((direction.x < 0) and (pos.x < math.floor(pos.x + 0.5))) then
-				local overhang = pos.x - math.floor(pos.x + 0.5) -- how much past the center the cart is, (add to next dir
-				
-				local left  = minetest.get_node({x=pos.x,y=pos.y,z=pos.z + 1}).name
-				local right = minetest.get_node({x=pos.x,y=pos.y,z=pos.z - 1}).name
-				--local base  = minetest.get_node({x=pos.x+direction.x,y=pos.y-1,z=pos.z+direction.z}).name -- the bottom of the minecart
-				
-				
-				if left == "default:rail" then
-					direction.x = 0
-					direction.z = 1
-					--reset on the center of the rail and compensate for overhang 
-					--"turn simulation" will look nice with auto rotate and multiple carts
-					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z + speed + overhang}
-				elseif right == "default:rail" then
-					direction.x = 0
-					direction.z = -1
-					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed - overhang} 
-				
-				else
-					--stop
-					print("stop")
-					movement  = {x=pos.x,y=pos.y,z=pos.z}
-					direction = {x=0,y=0,z=0}
-				end
+			local left  = minetest.get_node({x=pos.x,y=pos.y,z=pos.z + 1}).name
+			local right = minetest.get_node({x=pos.x,y=pos.y,z=pos.z - 1}).name
 			
+						
+			if left == "default:rail" then
+				direction.x = 0
+				direction.z = 1
+				movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z + speed}
+			elseif right == "default:rail" then
+				direction.x = 0
+				direction.z = -1
+				movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed} 
 			end
 		elseif math.abs(direction.z) > 0 then
-			if ((direction.z > 0) and (pos.z > math.floor(pos.z + 0.5))) or ((direction.z < 0) and (pos.z < math.floor(pos.z + 0.5))) then
-				local overhang = pos.z - math.floor(pos.z + 0.5) -- how much past the center the cart is, (add to next dir
-
-				local left  = minetest.get_node({x=pos.x + 1,y=pos.y,z=pos.z}).name
-				local right = minetest.get_node({x=pos.x - 1,y=pos.y,z=pos.z}).name
 				
-				if left == "default:rail" then
-					direction.x = 1
-					direction.z = 0
-					movement = {x=pos.x + speed + overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
-				elseif right == "default:rail" then
-					direction.x = -1
-					direction.z = 0
-					movement = {x=pos.x - speed - overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
-				end
+			local left  = minetest.get_node({x=pos.x + 1,y=pos.y,z=pos.z}).name
+			local right = minetest.get_node({x=pos.x - 1,y=pos.y,z=pos.z}).name
+			
+						
+			if left == "default:rail" then
+				direction.x = 1
+				direction.z = 0
+
+				movement = {x=pos.x  + speed,y=pos.y,z=math.floor(pos.z + 0.5)}
+			elseif right == "default:rail" then
+				direction.x = -1
+				direction.z = 0
+				movement = {x=pos.x - speed,y=pos.y,z=math.floor(pos.z + 0.5)} 
 			end
-		
-		else
-			print("stop")
-			movement  = {x=pos.x,y=pos.y,z=pos.z}
-			direction = {x=0,y=0,z=0}
 		end
-	]]--
-	else--if all else fails, stop
-		print("stop")
-		movement  = pos
-		direction = {x=0,y=0,z=0}
 	end
 	
 	self.object:moveto(movement)
