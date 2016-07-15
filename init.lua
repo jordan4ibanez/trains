@@ -23,9 +23,12 @@ just stopping via clientside until catchup, which is much neater and more digest
 
 local minecart   = {
 	physical     = true,
-	collisionbox = {-0.5, -0.5, -0.5, 0.5, 0.5, 0.5}, -- fill up the node
-	visual       = "cube",
-	textures     = {"default_wood.png"},
+	collisionbox = {-0.5,-0.5,-0.5, 0.5,0.5,0.5},
+	visual = "mesh",
+	mesh = "cart.x",
+	visual_size = {x=1, y=1},
+	textures = {"cart.png"},
+	automatic_face_movement_dir = 0.0,
 	
 	direction    = {x=0,y=0,z=0},
 	speed        = 0, --dpt (distance per tick, speed measurement)
@@ -41,7 +44,7 @@ function minecart.on_rightclick(self, clicker)
 	--if self.direction.x == 0 and self.direction.z == 0 then
 		self.direction = set_direction(clicker:getpos(), pos)
 		self.speed     = 0.3
-		clicker:set_attach(self.object, "", {x=0,y=5,z=0}, {x=0,y=0,z=0})
+		clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 	--end
 end
 
