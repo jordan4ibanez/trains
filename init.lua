@@ -40,7 +40,8 @@ function minecart.on_rightclick(self, clicker)
 	local pos = self.object:getpos()
 	--if self.direction.x == 0 and self.direction.z == 0 then
 		self.direction = set_direction(clicker:getpos(), pos)
-		self.speed     = 0.05
+		self.speed     = 0.3
+		clicker:set_attach(self.object, "", {x=0,y=5,z=0}, {x=0,y=0,z=0})
 	--end
 end
 
