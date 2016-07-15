@@ -97,7 +97,7 @@ function roll(self)
 					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed - overhang} 
 				end
 			end
-		--[[
+		
 		elseif math.abs(direction.z) > 0 then
 			if ((direction.z > 0) and (pos.z > math.floor(pos.z + 0.5))) or ((direction.z < 0) and (pos.z < math.floor(pos.z + 0.5))) then
 				local overhang = pos.z - math.floor(pos.z + 0.5) -- how much past the center the cart is, (add to next dir
@@ -115,7 +115,7 @@ function roll(self)
 					movement = {x=pos.x - speed - overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
 				end
 			end
-			]]--
+			
 		end
 	end
 	
