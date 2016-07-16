@@ -46,12 +46,17 @@ end
 --right click function
 function minecart.on_rightclick(self, clicker)
 	--set_direction(self)
-	self.speed     = 0.05
-	if cart_link[clicker:get_player_name()] == nil then
-		cart_link[clicker:get_player_name()] = self.object:get_luaentity()
+	--sneak to link minecarts
+	if clicker:get_player_control().sneak == true then
+		if cart_link[clicker:get_player_name()] == nil then
+			cart_link[clicker:get_player_name()] = self.object:get_luaentity()
+		else
+			self.leader = cart_link[clicker:get_player_name()]
+			cart_link[clicker:get_player_name()] = nil
+			self.speed     = 0.05
+		end
 	else
-		self.leader = cart_link[clicker:get_player_name()]
-		cart_link[clicker:get_player_name()] = nil
+		self.speed     = 0.05
 	end
 	--clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 end
