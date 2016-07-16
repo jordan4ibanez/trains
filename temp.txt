@@ -1,58 +1,18 @@
-				local overhang = pos.x - math.floor(pos.x + 0.5) -- how much past the center the cart is, (add to next dir
-				
-				local left  = minetest.get_node({x=pos.x,y=pos.y,z=pos.z + 1}).name
-				local right = minetest.get_node({x=pos.x,y=pos.y,z=pos.z - 1}).name
-				--local base  = minetest.get_node({x=pos.x+direction.x,y=pos.y-1,z=pos.z+direction.z}).name -- the bottom of the minecart
-				
-				
-				if upnode == "default:rail"  then--and base ~= "default:rail" then
-					--lets move the cart upwards
-					
-					movement  = {x=math.floor(pos.x + 0.5),y=pos.y + speed,z=pos.z + (direction.z * speed)}
-					direction = {x=direction.x,y=1,z=direction.z}
-				elseif upnode ~= "default:rail" and direction.y == 1 then
-				
-					print("continue upward")
-				--[[
-				elseif left == "default:rail" then
-					direction.x = 0
-					direction.z = 1
-					--reset on the center of the rail and compensate for overhang 
-					--"turn simulation" will look nice with auto rotate and multiple carts
-					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z + speed + overhang}
-				elseif right == "default:rail" then
-					direction.x = 0
-					direction.z = -1
-					movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed - overhang} 
-				]]--
-				else
-					--stop
-					print("stop")
-					movement  = {x=pos.x,y=pos.y,z=pos.z}
-					direction = {x=0,y=0,z=0}
-				end
-			end
-		--[[
-		elseif math.abs(direction.z) > 0 then
-			if ((direction.z > 0) and (pos.z > math.floor(pos.z + 0.5))) or ((direction.z < 0) and (pos.z < math.floor(pos.z + 0.5))) then
-				local overhang = pos.z - math.floor(pos.z + 0.5) -- how much past the center the cart is, (add to next dir
-
-				local left  = minetest.get_node({x=pos.x + 1,y=pos.y,z=pos.z}).name
-				local right = minetest.get_node({x=pos.x - 1,y=pos.y,z=pos.z}).name
-				
-				if left == "default:rail" then
-					direction.x = 1
-					direction.z = 0
-					movement = {x=pos.x + speed + overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
-				elseif right == "default:rail" then
-					direction.x = -1
-					direction.z = 0
-					movement = {x=pos.x - speed - overhang,y=pos.y,z=math.floor(pos.z + 0.5)} 
-				end
-			end
-		]]--
-		else
-			print("stop")
-			movement  = {x=pos.x,y=pos.y,z=pos.z}
-			direction = {x=0,y=0,z=0}
-		end
+	--prototype testing - variable speeds
+	if speed < 0.5 and test == true then
+		speed = speed + 0.01
+		self.object:get_luaentity().speed = self.object:get_luaentity().speed + 0.01
+	end
+	if speed > 0 and test == false then
+		speed = speed - 0.01
+		self.object:get_luaentity().speed = self.object:get_luaentity().speed - 0.01
+	end
+	
+	if speed >= 0.5 then
+		self.object:get_luaentity().test = false
+	end
+	if speed <= 0 then
+		self.object:get_luaentity().test = true
+	end
+	--print(speed)
+	--end test
