@@ -54,6 +54,7 @@ function minecart.on_rightclick(self, clicker)
 			self.leader = cart_link[clicker:get_player_name()]
 			cart_link[clicker:get_player_name()] = nil
 			self.speed     = 0.05
+			minetest.chat_send_player(clicker:get_player_name(), "Carts linked!")
 		end
 	else
 		self.speed     = 0.05
