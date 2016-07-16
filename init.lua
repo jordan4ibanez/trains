@@ -53,13 +53,17 @@ function minecart.on_rightclick(self, clicker)
 		else
 			self.leader = cart_link[clicker:get_player_name()]
 			cart_link[clicker:get_player_name()] = nil
-			self.speed     = 0.05
+			self.speed     = 0.2
 			minetest.chat_send_player(clicker:get_player_name(), "Carts linked!")
 		end
 	else
-		self.speed     = 0.05
+		if self.speed ~= 0 then
+			self.speed = 0
+		else
+			self.speed     = 0.2
+			clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		end
 	end
-	--clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 end
 
 --when the minecart is created in world
@@ -135,7 +139,7 @@ function roll(self)
 	]]--
 	--this is the prototype for carts to follow eachother
 	
-	for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 5)) do
+	for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 8)) do
 		if object:is_player() == false then
 			if leader ~= nil then
 				if object:get_luaentity() == leader then
@@ -144,7 +148,8 @@ function roll(self)
 					local difx = pos.x - pos2.x
 					local difz = pos.z - pos2.z
 					local distance = vector.distance(pos,pos2)
-					if distance < 1.5 then
+					--cancel the rest of the collision detection
+					if distance < 1 then
 						return
 					end
 					if direction.x > 0 then
