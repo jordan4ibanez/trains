@@ -21,6 +21,9 @@ just stopping via clientside until catchup, which is much neater and more digest
 --Minecart prototype
 --MAKE IT BASIC
 
+--direction == pos - lastpos vector
+
+
 local minecart   = {
 	physical     = true,
 	collisionbox = {-0.5,-0.5,-0.5, 0.5,0.5,0.5},
@@ -43,8 +46,11 @@ function minecart.on_rightclick(self, clicker)
 	local pos = self.object:getpos()
 	--if self.direction.x == 0 and self.direction.z == 0 then
 		self.direction = set_direction(clicker:getpos(), pos)
-		self.speed     = 0.3
+		self.speed     = 0.01
 		clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
+		--
+		self.test = true
+		--
 	--end
 end
 
@@ -68,7 +74,28 @@ function roll(self)
 	local pos       = self.object:getpos()
 	local direction = self.object:get_luaentity().direction
 	local speed     = self.object:get_luaentity().speed
-
+	local test      = self.object:get_luaentity().test
+	
+	--prototype testing - variable speeds
+	if speed < 0.5 and test == true then
+		speed = speed + 0.01
+		self.object:get_luaentity().speed = self.object:get_luaentity().speed + 0.01
+	end
+	if speed > 0 and test == false then
+		speed = speed - 0.01
+		self.object:get_luaentity().speed = self.object:get_luaentity().speed - 0.01
+	end
+	
+	if speed >= 0.5 then
+		self.object:get_luaentity().test = false
+	end
+	if speed <= 0 then
+		self.object:get_luaentity().test = true
+	end
+	--print(speed)
+	--end test
+	
+		
 	local x = math.floor(pos.x + 0.5)
 	local y = math.floor(pos.y + 0.5) --the center of the node
 	local z = math.floor(pos.z + 0.5)
@@ -84,6 +111,10 @@ function roll(self)
 	local nodeahead   = minetest.get_node({x=pos.x+(direction.x/2),y=pos.y+(direction.y/2),z=pos.z+(direction.z/2)}).name --1 rounded node ahead
 	----
 	local movement  = {x=pos.x,y=pos.y,z=pos.z}
+	
+
+			self.up = false
+		
 	
 	--print(forwardnode,downnode)
 	--move minecart down
@@ -102,16 +133,6 @@ function roll(self)
 			print(dump(noder))
 			direction.y = 0
 		end
-	--move the cart forwards
-	elseif nodeahead == "default:rail" and upnode ~= "default:rail" and direction.y == 0 or (nodeahead ~= "default:rail" and downnode == "default:rail") then --and upnode ~= "default:rail" and downnode ~= "default:rail" and direction.y == 0 then
-		
-		if math.abs(speedx) ~= 0 then
-			movement = {x=speedx,y=speedy,z=speedz}
-			
-		elseif math.abs(speedz) ~= 0 then
-			movement = {x=speedx,y=speedy,z=speedz}
-			
-		end
 	--move minecart up
 	elseif nodeahead == "default:rail" and upnode == "default:rail" and direction.y == 0 then
 		print("up")
@@ -125,6 +146,16 @@ function roll(self)
 		--when it gets to the top of the rail, stop moving up
 		if minetest.get_node({x=speedx+(direction.x),y=speedy+0.5,z=speedz+(direction.z)}).name ~= "default:rail" then
 			direction.y = 0
+		end
+	--move the cart forwards
+	elseif nodeahead == "default:rail" and upnode ~= "default:rail" and direction.y == 0 or (nodeahead ~= "default:rail" and downnode == "default:rail") then --and upnode ~= "default:rail" and downnode ~= "default:rail" and direction.y == 0 then
+		
+		if math.abs(speedx) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+			
+		elseif math.abs(speedz) ~= 0 then
+			movement = {x=speedx,y=speedy,z=speedz}
+			
 		end
 	elseif nodeahead ~= "default:rail" and upnode ~= "default:rail" and downnode ~= "default:rail" then
 		if math.abs(direction.x) > 0 then
