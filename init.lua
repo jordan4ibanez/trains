@@ -24,7 +24,7 @@ just stopping via clientside until catchup, which is much neater and more digest
 --direction == pos - lastpos vector
 --randomize turning for single carts?
 --stop moveto if no rail at pos,and cancel whole collision detection if not on rail
-
+cart_link = {}
 
 local minecart   = {
 	physical     = true,
@@ -47,6 +47,12 @@ end
 function minecart.on_rightclick(self, clicker)
 	--set_direction(self)
 	self.speed     = 0.05
+	if cart_link[clicker:get_player_name()] == nil then
+		cart_link[clicker:get_player_name()] = self.object:get_luaentity()
+	else
+		self.leader = cart_link[clicker:get_player_name()]
+		cart_link[clicker:get_player_name()] = nil
+	end
 	--clicker:set_attach(self.object, "", {x=0,y=0,z=0}, {x=0,y=0,z=0})
 end
 
@@ -71,6 +77,7 @@ function roll(self)
 	local pos       = self.object:getpos()
 	local direction = self.object:get_luaentity().direction
 	local speed     = self.object:get_luaentity().speed
+	local leader    = self.object:get_luaentity().leader
 	
 	
 	local x = math.floor(pos.x + 0.5)
@@ -121,52 +128,60 @@ function roll(self)
 	end
 	]]--
 	--this is the prototype for carts to follow eachother
-	--[[
+	
 	for _,object in ipairs(minetest.env:get_objects_inside_radius(pos, 5)) do
-		if object:is_player() then
-			local pos2 = object:getpos()
-			local difx = pos.x - pos2.x
-			local difz = pos.z - pos2.z
-			if direction.x > 0 then
-				--calculate distance into speed
-				if difx > 0 then
-					direction.x = -1
-				end
-			elseif direction.x < 0 then
-				--calculate distance into speed
-				if difx < 0 then
-					direction.x = 1
-				end
-			elseif direction.z > 0 then
-				--calculate distance into speed
-				if difz > 0 then
-					direction.z = -1
-				end
-			elseif direction.z < 0 then
-				--calculate distance into speed
-				if difz < 0 then
-					direction.z = 1
-				end
-			end
-			--try to correct for t junction
-			if math.abs(difx) < speed then
-				direction.x = 0
-				if difz > 0 then
-					direction.z = -1
-				elseif difz < 0 then
-					direction.z = 1
-				end
-			elseif math.abs(difz) < speed then
-				direction.z = 0
-				if difx > 0 then
-					direction.x  = -1
-				elseif difx < 0 then
-					direction.x = 1
+		if object:is_player() == false then
+			if leader ~= nil then
+				if object:get_luaentity() == leader then
+					--print("test")
+					local pos2 = object:getpos()
+					local difx = pos.x - pos2.x
+					local difz = pos.z - pos2.z
+					local distance = vector.distance(pos,pos2)
+					if distance < 1.5 then
+						return
+					end
+					if direction.x > 0 then
+						--calculate distance into speed
+						if difx > 0 then
+							direction.x = -1
+						end
+					elseif direction.x < 0 then
+						--calculate distance into speed
+						if difx < 0 then
+							direction.x = 1
+						end
+					elseif direction.z > 0 then
+						--calculate distance into speed
+						if difz > 0 then
+							direction.z = -1
+						end
+					elseif direction.z < 0 then
+						--calculate distance into speed
+						if difz < 0 then
+							direction.z = 1
+						end
+					end
+					--try to correct for t junction
+					if math.abs(difx) < speed then
+						direction.x = 0
+						if difz > 0 then
+							direction.z = -1
+						elseif difz < 0 then
+							direction.z = 1
+						end
+					elseif math.abs(difz) < speed then
+						direction.z = 0
+						if difx > 0 then
+							direction.x  = -1
+						elseif difx < 0 then
+							direction.x = 1
+						end
+					end
 				end
 			end
 		end
 	end
-	]]--
 	--move minecart down
 	if forwardnode ~= "default:rail" and downnode == "default:rail" and direction.y == 0 then
 		direction.y = -1
@@ -211,37 +226,26 @@ function roll(self)
 		end
 	--turn and handle T junctions
 	elseif nodeahead ~= "default:rail" and upnode ~= "default:rail" and downnode ~= "default:rail" then
-		print("turning")
-		if math.abs(direction.x) > 0 then
-			
+		if math.abs(direction.x) > 0 then	
 			local left  = minetest.get_node({x=pos.x,y=pos.y,z=pos.z + 1}).name
 			local right = minetest.get_node({x=pos.x,y=pos.y,z=pos.z - 1}).name
-			
-						
+		
 			if left == "default:rail" then
 				direction.x = 0
 				direction.z = 1
-				--movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z + speed}
 			elseif right == "default:rail" then
 				direction.x = 0
 				direction.z = -1
-				--movement = {x=math.floor(pos.x + 0.5),y=pos.y,z=pos.z - speed} 
 			end
-		elseif math.abs(direction.z) > 0 then
-				
+		elseif math.abs(direction.z) > 0 then	
 			local left  = minetest.get_node({x=pos.x + 1,y=pos.y,z=pos.z}).name
 			local right = minetest.get_node({x=pos.x - 1,y=pos.y,z=pos.z}).name
-			
-						
 			if left == "default:rail" then
 				direction.x = 1
 				direction.z = 0
-
-				--movement = {x=pos.x  + speed,y=pos.y,z=math.floor(pos.z + 0.5)}
 			elseif right == "default:rail" then
 				direction.x = -1
 				direction.z = 0
-				--movement = {x=pos.x - speed,y=pos.y,z=math.floor(pos.z + 0.5)} 
 			end
 		end
 	end
